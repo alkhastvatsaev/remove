@@ -19,13 +19,6 @@
     <meta name="apple-mobile-web-app-title" content="ClearFocus">
     <link rel="apple-touch-icon" href="icons/icon.png">
     
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js');
-        });
-      }
-    </script>
 </head>
 <body>
     <!-- Top Progress Bar (Hidden by default) -->
@@ -72,14 +65,6 @@
         </div>
     </div>
 
-    <!-- Background Removal Library -->
-    <script type="importmap">
-        {
-          "imports": {
-            "@imgly/background-removal": "https://esm.sh/@imgly/background-removal@1.4.5"
-          }
-        }
-    </script>
-    <script type="module" src="app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

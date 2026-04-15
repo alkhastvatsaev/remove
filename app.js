@@ -1,5 +1,3 @@
-import removeBackground from "@imgly/background-removal";
-
 document.addEventListener('DOMContentLoaded', () => {
     // Lucide Icons
     if (window.lucide) {
@@ -17,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('download-btn');
 
     let resultBlob = null;
+    let removeBackgroundFn = null;
 
     // Interaction handlers
     dropZone.addEventListener('click', () => fileInput.click());
@@ -56,22 +55,27 @@ document.addEventListener('DOMContentLoaded', () => {
         originalImg.src = URL.createObjectURL(file);
         
         try {
+            // Lazy load the library via esm.sh
+            if (!removeBackgroundFn) {
+                const module = await import("https://esm.sh/@imgly/background-removal@1.4.5");
+                removeBackgroundFn = module.default;
+            }
+
             const config = {
+                // Ensure absolute URL for models to avoid 404 on sub-paths
                 publicPath: 'https://static.img.ly/packages/@imgly/background-removal-data/1.4.5/dist/',
                 progress: (msg, instance) => {
-                    // Update the top progress bar
                     if (msg.includes('fetch')) progressBar.style.width = '20%';
                     if (msg.includes('load')) progressBar.style.width = '50%';
                     if (msg.includes('render')) progressBar.style.width = '80%';
                 }
             };
 
-            const blob = await removeBackground(file, config);
+            const blob = await removeBackgroundFn(file, config);
             
             resultBlob = blob;
             resultImg.src = URL.createObjectURL(blob);
             
-            // Finalize transition
             progressBar.style.width = '100%';
             setTimeout(() => {
                 processingView.classList.add('hidden');
@@ -80,7 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 800);
 
         } catch (error) {
-            console.error(error);
+            console.error("AI Error:", error);
+            alert("Erreur IA: " + error.message);
             reset();
         }
     }
@@ -96,20 +101,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     resetBtn.addEventListener('click', reset);
 
-    downloadBtn.addEventListener('click', async () => {
+    downloadBtn.addEventListener('click', () => {
         if (!resultBlob) return;
-        
-        // Use a canvas to ensure it's a true PNG with transparency
         const img = new Image();
         img.src = URL.createObjectURL(resultBlob);
-        
         img.onload = () => {
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
             canvas.height = img.height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
-            
             canvas.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
