@@ -9,8 +9,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="style.css">
+    
+    <!-- TensorFlow.js & Models -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/selfie-segmentation"></script>
+    
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="apple-touch-icon" href="icons/icon.png">
@@ -19,12 +23,15 @@
     <div id="top-progress" class="progress-container"><div id="progress-bar" class="progress-bar"></div></div>
     <div class="content">
         <input type="file" id="file-input" accept="image/*" hidden>
+        
         <div id="drop-zone" class="state-view">
             <div class="minimal-icon-btn"><i data-lucide="plus" size="40" stroke-width="1"></i></div>
         </div>
+
         <div id="processing-view" class="state-view hidden">
             <div class="loader-icon"><i data-lucide="sparkles" size="40" stroke-width="1" class="pulse"></i></div>
         </div>
+
         <div id="result-view" class="state-view hidden">
             <div class="result-grid">
                 <div class="img-preview result" style="grid-column: span 2;">
@@ -39,16 +46,16 @@
     </div>
 
     <script>
-        // Safari-friendly loading
-        let imglyRemoveBackground = null;
+        let segmenter = null;
 
         async function initIA() {
-            if (!imglyRemoveBackground) {
-                // Dynamic import is better handled by Safari in some contexts
-                const module = await import("https://esm.sh/@imgly/background-removal@1.4.5");
-                imglyRemoveBackground = module.default;
+            if (!segmenter) {
+                segmenter = await selfie_segmentation.createSegmenter(
+                    selfie_segmentation.SupportedModels.SelfieSegmentation,
+                    { modelType: 'general' }
+                );
             }
-            return imglyRemoveBackground;
+            return segmenter;
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -69,39 +76,64 @@
             async function process(file) {
                 dropZone.classList.add('hidden');
                 processingView.classList.remove('hidden');
+                progressBar.style.width = '30%';
+
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
                 
-                try {
-                    const removeFn = await initIA();
-                    const config = {
-                        publicPath: 'https://unpkg.com/@imgly/background-removal-data@1.4.5/dist/',
-                        progress: (msg) => {
-                            if (msg.includes('fetch')) progressBar.style.width = '30%';
-                            if (msg.includes('load')) progressBar.style.width = '60%';
+                img.onload = async () => {
+                    try {
+                        const net = await initIA();
+                        progressBar.style.width = '60%';
+                        
+                        const segmentation = await net.segmentPeople(img);
+                        progressBar.style.width = '80%';
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Use the mask to draw only the "product" (person/object)
+                        // Note: SelfieSegmentation is optimized for people but works for many objects in 'general' mode.
+                        ctx.drawImage(img, 0, 0);
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const mask = segmentation[0].mask;
+                        const maskData = await mask.toUint8Array();
+
+                        for (let i = 0; i < maskData.length; i++) {
+                            // If mask value is low (background), set alpha to 0
+                            if (maskData[i] < 128) {
+                                imageData.data[i * 4 + 3] = 0;
+                            }
                         }
-                    };
-                    
-                    const blob = await removeFn(file, config);
-                    currentBlob = blob;
-                    resultImg.src = URL.createObjectURL(blob);
-                    
-                    progressBar.style.width = '100%';
-                    setTimeout(() => {
-                        processingView.classList.add('hidden');
-                        resultView.classList.remove('hidden');
-                        progressBar.style.width = '0%';
-                    }, 500);
-                } catch (err) {
-                    console.error("DEBUG:", err);
-                    alert("Safari Error: " + err.message);
-                    location.reload();
-                }
+                        
+                        ctx.putImageData(imageData, 0, 0);
+
+                        canvas.toBlob((blob) => {
+                            currentBlob = blob;
+                            resultImg.src = URL.createObjectURL(blob);
+                            progressBar.style.width = '100%';
+                            setTimeout(() => {
+                                processingView.classList.add('hidden');
+                                resultView.classList.remove('hidden');
+                                progressBar.style.width = '0%';
+                            }, 500);
+                        }, 'image/png');
+
+                    } catch (err) {
+                        console.error(err);
+                        alert("Erreur: " + err.message);
+                        location.reload();
+                    }
+                };
             }
 
             document.getElementById('reset-btn').onclick = () => location.reload();
             document.getElementById('download-btn').onclick = () => {
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(currentBlob);
-                a.download = "cleafocus.png";
+                a.download = "cleafocus-product.png";
                 a.click();
             };
         });
