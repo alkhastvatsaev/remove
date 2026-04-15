@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             const config = {
+                publicPath: 'https://static.img.ly/packages/@imgly/background-removal-data/1.4.5/dist/',
                 progress: (msg, instance) => {
                     // Update the top progress bar
                     if (msg.includes('fetch')) progressBar.style.width = '20%';
