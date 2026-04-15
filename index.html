@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClearFocus | Minimalism</title>
+    <!-- Google Fonts: Inter for the UI (though we want minimal text) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ClearFocus">
+    <link rel="apple-touch-icon" href="icons/icon.png">
+    
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js');
+        });
+      }
+    </script>
+</head>
+<body>
+    <!-- Top Progress Bar (Hidden by default) -->
+    <div id="top-progress" class="progress-container">
+        <div id="progress-bar" class="progress-bar"></div>
+    </div>
+
+    <div class="content">
+        <input type="file" id="file-input" accept="image/*" hidden>
+        
+        <!-- IDLE STATE (Upload) -->
+        <div id="drop-zone" class="state-view">
+            <div class="minimal-icon-btn">
+                <i data-lucide="plus" size="40" stroke-width="1"></i>
+            </div>
+        </div>
+
+        <!-- PROCESSING STATE -->
+        <div id="processing-view" class="state-view hidden">
+            <div class="loader-icon">
+                <i data-lucide="sparkles" size="40" stroke-width="1" class="pulse"></i>
+            </div>
+        </div>
+
+        <!-- RESULT STATE -->
+        <div id="result-view" class="state-view hidden">
+            <div class="result-display">
+                <div class="img-preview original">
+                    <img id="original-img" src="" alt="">
+                </div>
+                <div class="img-preview result">
+                    <img id="result-img" src="" alt="">
+                </div>
+            </div>
+            
+            <div class="actions">
+                <button id="reset-btn" class="icon-btn">
+                    <i data-lucide="x" size="24" stroke-width="1.5"></i>
+                </button>
+                <button id="download-btn" class="icon-btn primary">
+                    <i data-lucide="arrow-down" size="24" stroke-width="1.5"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Background Removal Library -->
+    <script type="importmap">
+        {
+          "imports": {
+            "@imgly/background-removal": "https://esm.sh/@imgly/background-removal@1.4.5"
+          }
+        }
+    </script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
