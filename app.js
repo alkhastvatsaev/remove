@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Lucide Icons
     if (window.lucide) {
         window.lucide.createIcons();
     }
@@ -15,63 +14,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('download-btn');
 
     let resultBlob = null;
-    let removeBackgroundFn = null;
+    let removeBackground = null;
 
-    // Interaction handlers
     dropZone.addEventListener('click', () => fileInput.click());
 
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.style.borderColor = "#ffffff";
-        dropZone.style.color = "#ffffff";
-    });
-
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.style.borderColor = "";
-        dropZone.style.color = "";
-    });
-
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.border = "1px solid #000"; });
+    dropZone.addEventListener('dragleave', () => { dropZone.style.border = ""; });
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
-        if (e.dataTransfer.files.length) {
-            handleFile(e.dataTransfer.files[0]);
-        }
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
     });
 
     fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length) {
-            handleFile(e.target.files[0]);
-        }
+        if (e.target.files.length) handleFile(e.target.files[0]);
     });
 
     async function handleFile(file) {
         if (!file.type.startsWith('image/')) return;
 
-        // Show processing state
         dropZone.classList.add('hidden');
         processingView.classList.remove('hidden');
         resultView.classList.add('hidden');
-        
         originalImg.src = URL.createObjectURL(file);
         
         try {
-            // Lazy load the library via esm.sh
-            if (!removeBackgroundFn) {
-                const module = await import("https://esm.sh/@imgly/background-removal@1.4.5");
-                removeBackgroundFn = module.default;
+            // Load library with bundling to avoid cross-domain dependency issues
+            if (!removeBackground) {
+                const module = await import("https://esm.sh/@imgly/background-removal@1.4.5?bundle");
+                removeBackground = module.default;
             }
 
             const config = {
-                // Ensure absolute URL for models to avoid 404 on sub-paths
-                publicPath: 'https://static.img.ly/packages/@imgly/background-removal-data/1.4.5/dist/',
-                progress: (msg, instance) => {
+                // Pointing to unpkg which is often more reliable for static data files
+                publicPath: 'https://unpkg.com/@imgly/background-removal-data@1.4.5/dist/',
+                progress: (msg) => {
                     if (msg.includes('fetch')) progressBar.style.width = '20%';
                     if (msg.includes('load')) progressBar.style.width = '50%';
                     if (msg.includes('render')) progressBar.style.width = '80%';
                 }
             };
 
-            const blob = await removeBackgroundFn(file, config);
+            const blob = await removeBackground(file, config);
             
             resultBlob = blob;
             resultImg.src = URL.createObjectURL(blob);
@@ -84,8 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 800);
 
         } catch (error) {
-            console.error("AI Error:", error);
-            alert("Erreur IA: " + error.message);
+            console.error(error);
+            alert("Erreur: " + error.message);
             reset();
         }
     }
@@ -115,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `product-${Date.now()}.png`;
+                a.download = `product.png`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
