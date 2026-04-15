@@ -73,6 +73,7 @@
                 try {
                     const removeFn = await initIA();
                     const config = {
+                        model: 'small', // Much more stable for mobile/Vercel
                         publicPath: 'https://unpkg.com/@imgly/background-removal-data@1.4.5/dist/',
                         progress: (msg) => {
                             if (msg.includes('fetch')) progressBar.style.width = '30%';
